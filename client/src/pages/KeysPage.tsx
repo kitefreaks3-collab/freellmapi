@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/page-header'
 import type { ApiKey, Model, ModelTestResult, Platform } from '../../../shared/types'
 import { Plus, Download, FlaskConical, Loader2 } from 'lucide-react'
 import { useI18n } from '@/i18n'
+import { selectBulkTestTargets } from '@/lib/test-models'
 import { LISTED_PLATFORMS, type HealthData } from '@/components/keys/shared'
 import { QuotaSignalsSection } from '@/components/keys/quota-signals-section'
 import { UnifiedKeySection } from '@/components/keys/unified-key-section'
@@ -80,25 +81,7 @@ export default function KeysPage() {
         apiFetch<ApiKey[]>('/api/keys'),
         apiFetch<Model[]>('/api/models'),
       ])
-      const enabledKeys = currentKeys.filter(key => key.enabled)
-      const platforms = [...new Set(enabledKeys.filter(key => key.platform !== 'custom').map(key => key.platform))]
-      const targets = [
-        ...platforms.map(platform => {
-          const candidates = currentModels
-            .filter(model => model.platform === platform && model.enabled)
-            .sort((a, b) => a.intelligenceRank - b.intelligenceRank || a.displayName.localeCompare(b.displayName))
-          return { platform, model: candidates[0] }
-        }),
-        // Custom endpoints are scoped per key. Testing one arbitrary "custom"
-        // model could hit a different endpoint/key, so test one model per
-        // enabled custom key instead.
-        ...enabledKeys.filter(key => key.platform === 'custom').map(key => {
-          const candidates = currentModels
-            .filter(model => model.platform === 'custom' && model.keyId === key.id && model.enabled)
-            .sort((a, b) => a.intelligenceRank - b.intelligenceRank || a.displayName.localeCompare(b.displayName))
-          return { platform: key.groupLabel || key.label || 'Custom', model: candidates[0] }
-        }),
-      ]
+      const targets = selectBulkTestTargets(currentKeys, currentModels)
       setBulkProgress({ done: 0, total: targets.length })
       const rows: BulkTestRow[] = []
       setBulkRows([])
