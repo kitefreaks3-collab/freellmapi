@@ -1,5 +1,4 @@
 import path from 'node:path';
-import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { app, dialog, ipcMain, clipboard, nativeTheme, net, screen, shell, type Tray } from 'electron';
 import { startServer, ensureSessionToken, getUnifiedApiKey, isAutoUpdateCheckEnabled, backupBeforeUpdate, outboundProxyUrl, setCatalogFallbackFetch } from './server.mjs';
@@ -12,6 +11,7 @@ import { openDashboard } from './window.js';
 import { todayStats, hourlyRequests, successRateToday } from './stats.js';
 import { normalizeLocale, nativeStrings, type NativeLocale } from './i18n.js';
 import { initUpdater, getUpdateState, checkForUpdates, downloadUpdate, installUpdate, checkFromTray } from './updater.js';
+import { configureClaudeCode } from './claude-code.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = 31415;
@@ -157,33 +157,12 @@ if (!app.requestSingleInstanceLock()) {
     if (process.platform !== 'win32') {
       throw new Error('Automatic Claude Code connection is currently supported on Windows only.');
     }
-    const settingsDir = path.join(app.getPath('home'), '.claude');
-    const settingsPath = path.join(settingsDir, 'settings.json');
-    fs.mkdirSync(settingsDir, { recursive: true });
-    let settings: Record<string, any> = {};
-    if (fs.existsSync(settingsPath)) {
-      const raw = fs.readFileSync(settingsPath, 'utf8');
-      if (raw.trim()) {
-        try {
-          settings = JSON.parse(raw);
-        } catch {
-          throw new Error('Claude Code settings.json contains invalid JSON. No changes were made.');
-        }
-      }
-    }
-    if (!settings.env || typeof settings.env !== 'object' || Array.isArray(settings.env)) settings.env = {};
-    const existing = settings.env as Record<string, unknown>;
-    const key = getUnifiedApiKey();
-    if (!key) throw new Error('FreeLLMAPI unified API key is not available yet.');
-    const previous = { ...existing };
-    existing.ANTHROPIC_BASE_URL = `http://127.0.0.1:${resolvedPort}`;
-    existing.ANTHROPIC_AUTH_TOKEN = key;
-    const backupPath = settingsPath + `.backup-${new Date().toISOString().replace(/[:.]/g, '-')}`;
-    if (fs.existsSync(settingsPath)) fs.copyFileSync(settingsPath, backupPath);
-    const tempPath = settingsPath + '.tmp';
-    fs.writeFileSync(tempPath, JSON.stringify(settings, null, 2) + '\\n', { encoding: 'utf8', mode: 0o600 });
-    fs.renameSync(tempPath, settingsPath);
-    return { settingsPath, backupPath: fs.existsSync(backupPath) ? backupPath : null, previousEnvKeys: Object.keys(previous) };
+    const result = configureClaudeCode({
+      homeDir: app.getPath('home'),
+      port: resolvedPort,
+      apiKey: getUnifiedApiKey(),
+    });
+    return result;
   });
   ipcMain.handle('freeapi:set-login-item', (_e, open: boolean) => app.setLoginItemSettings({ openAtLogin: open }));
   ipcMain.handle('freeapi:quit', () => app.quit());
