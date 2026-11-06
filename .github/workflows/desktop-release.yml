@@ -79,7 +79,7 @@ jobs:
               desktop/dist-electron/*.zip
               desktop/dist-electron/*.blockmap
               desktop/dist-electron/latest-mac.yml
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             ebArgs: --linux --x64
             artifact: linux-installer
             glob: |
