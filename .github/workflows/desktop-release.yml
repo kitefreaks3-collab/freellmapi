@@ -33,6 +33,7 @@ on:
     paths:
       - 'desktop/**'
       - '.github/workflows/desktop-release.yml'
+      - 'scripts/windows/**'
 
 permissions:
   contents: write
