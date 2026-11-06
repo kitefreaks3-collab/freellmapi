@@ -45,9 +45,7 @@ permissions:
 jobs:
   build:
     name: Build (${{ matrix.os }})
-    # PR validation targets the user's Windows desktop workflow only. Keep Linux
-    # and macOS packaging for manual and tagged release runs.
-    if: github.event_name != 'pull_request' || matrix.os == 'windows-2022'
+    # This repository's desktop deliverable is Windows-only.
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -63,34 +61,6 @@ jobs:
               desktop/dist-electron/*.zip
               desktop/dist-electron/*.blockmap
               desktop/dist-electron/latest.yml
-          - os: macos-latest
-            arch: arm64
-            ebArgs: --mac --arm64
-            artifact: macos-installer-arm64
-            glob: |
-              desktop/dist-electron/*.dmg
-              desktop/dist-electron/*.zip
-              desktop/dist-electron/*.blockmap
-              desktop/dist-electron/latest-mac.yml
-          # Build and exercise better-sqlite3 natively on Intel (#1232).
-          - os: macos-15-intel
-            arch: x64
-            ebArgs: --mac --x64
-            artifact: macos-installer-x64
-            glob: |
-              desktop/dist-electron/*.dmg
-              desktop/dist-electron/*.zip
-              desktop/dist-electron/*.blockmap
-              desktop/dist-electron/latest-mac.yml
-          - os: ubuntu-24.04
-            ebArgs: --linux --x64
-            artifact: linux-installer
-            glob: |
-              desktop/dist-electron/*.AppImage
-              desktop/dist-electron/*.tar.xz
-              desktop/dist-electron/*.deb
-              desktop/dist-electron/*.rpm
-              desktop/dist-electron/latest-linux.yml
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -522,7 +492,7 @@ jobs:
 
   macos-release:
     name: Verify and combine macOS artifacts
-    if: startsWith(github.ref, 'refs/tags/')
+    if: false
     needs: build
     runs-on: ubuntu-latest
     steps:
