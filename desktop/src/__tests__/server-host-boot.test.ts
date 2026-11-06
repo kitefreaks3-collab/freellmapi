@@ -25,6 +25,13 @@ vi.mock('../../../server/src/db/index.js', () => ({
   getUnifiedApiKey: vi.fn(),
 }));
 
+vi.mock('../../../server/src/services/desktop-keyless-setup.js', () => ({
+  initializeDesktopKeylessProviders: vi.fn(() => {
+    calls.push('initializeDesktopKeylessProviders');
+    return [];
+  }),
+}));
+
 vi.mock('../../../server/src/lib/proxy.js', () => ({
   restoreProxySettings: vi.fn(() => {
     calls.push('restoreProxySettings');
@@ -172,6 +179,7 @@ describe('desktop server boot sequence (#949)', () => {
       'installLogRedaction',
       'installProcessSafetyNet',
       'initDb',
+      'initializeDesktopKeylessProviders',
       'cleanupExpiredCooldowns',
       'restoreProxySettings',
       'loadCacheFromDb',
