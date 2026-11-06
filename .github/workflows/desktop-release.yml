@@ -34,6 +34,7 @@ on:
       - 'desktop/**'
       - '.github/workflows/desktop-release.yml'
       - 'scripts/windows/**'
+      - 'client/src/pages/AgentsPage.tsx'
 
 permissions:
   contents: write
