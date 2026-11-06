@@ -20,6 +20,12 @@ if (arg) {
 contextBridge.exposeInMainWorld('__FREEAPI_DESKTOP__', true);
 contextBridge.exposeInMainWorld('__FREEAPI_PLATFORM__', process.platform);
 
+// Native one-click Claude Code setup. The main process validates platform,
+// writes the user's config safely, and returns only non-secret metadata.
+contextBridge.exposeInMainWorld('__FREEAPI_CLAUDE__', {
+  connect: () => ipcRenderer.invoke('freeapi:connect-claude-code'),
+});
+
 // The dashboard window signs in as the hidden machine account, whose password
 // is random and never shown, so it must never land on the login form. When the
 // seeded session is gone (expired after 30 days of uptime, or cleared by a 401)
