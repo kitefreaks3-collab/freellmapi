@@ -11,6 +11,7 @@ import { openDashboard } from './window.js';
 import { todayStats, hourlyRequests, successRateToday } from './stats.js';
 import { normalizeLocale, nativeStrings, type NativeLocale } from './i18n.js';
 import { initUpdater, getUpdateState, checkForUpdates, downloadUpdate, installUpdate, checkFromTray } from './updater.js';
+import { configureClaudeCode } from './claude-code.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = 31415;
@@ -152,6 +153,17 @@ if (!app.requestSingleInstanceLock()) {
   ipcMain.handle('freeapi:open-dashboard', () => openDashboard(resolvedPort, sessionToken));
   ipcMain.handle('freeapi:copy-base-url', () => clipboard.writeText(`http://127.0.0.1:${resolvedPort}/v1`));
   ipcMain.handle('freeapi:copy-api-key', () => clipboard.writeText(getUnifiedApiKey()));
+  ipcMain.handle('freeapi:connect-claude-code', () => {
+    if (process.platform !== 'win32') {
+      throw new Error('Automatic Claude Code connection is currently supported on Windows only.');
+    }
+    const result = configureClaudeCode({
+      homeDir: app.getPath('home'),
+      port: resolvedPort,
+      apiKey: getUnifiedApiKey(),
+    });
+    return result;
+  });
   ipcMain.handle('freeapi:set-login-item', (_e, open: boolean) => app.setLoginItemSettings({ openAtLogin: open }));
   ipcMain.handle('freeapi:quit', () => app.quit());
   // Dashboard → the in-app updater (preload __FREEAPI_UPDATER__). Each call

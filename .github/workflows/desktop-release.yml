@@ -33,6 +33,8 @@ on:
     paths:
       - 'desktop/**'
       - '.github/workflows/desktop-release.yml'
+      - 'client/src/pages/AgentsPage.tsx'
+      - 'client/src/vite-env.d.ts'
 
 permissions:
   contents: write
@@ -329,6 +331,71 @@ jobs:
           # so latest*.yml update metadata gets GENERATED, not so electron-builder
           # uploads. The "Attach installer to release" step below owns publishing.
           npx --no-install electron-builder ${{ matrix.ebArgs }} --publish never
+
+      # Exercise the actual NSIS installer on the ephemeral Windows runner.
+      # This uses the runner's disposable profile; no developer machine is touched.
+      - name: Install, launch, health-check, and uninstall Windows build
+        if: runner.os == 'Windows'
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installer = Get-ChildItem 'desktop/dist-electron/*-Setup-*.exe' | Select-Object -First 1
+          if (-not $installer) { throw 'NSIS installer was not produced.' }
+          Write-Host "Installing $($installer.FullName)"
+          $install = Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "Installer exited with code $($install.ExitCode)." }
+
+          # Resolve the per-user install location from the uninstall registry entry
+          # instead of assuming electron-builder's default directory.
+          $uninstallEntries = @(
+            Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue |
+              Where-Object { $_.DisplayName -like 'FreeLLMAPI*' }
+          )
+          $installDir = $uninstallEntries |
+            Where-Object { $_.InstallLocation -and (Test-Path $_.InstallLocation) } |
+            Select-Object -First 1 -ExpandProperty InstallLocation
+
+          if (-not $installDir) {
+            $programsDir = Join-Path $env:LOCALAPPDATA 'Programs'
+            $appCandidate = Get-ChildItem $programsDir -Filter 'FreeLLMAPI.exe' -File -Recurse -ErrorAction SilentlyContinue |
+              Select-Object -First 1
+            if ($appCandidate) { $installDir = $appCandidate.DirectoryName }
+          }
+
+          if (-not $installDir) {
+            $uninstallEntries | Format-List DisplayName, InstallLocation, UninstallString | Out-String | Write-Host
+            throw 'FreeLLMAPI install directory could not be resolved from the per-user uninstall registry or Programs folder.'
+          }
+
+          $appExe = Join-Path $installDir 'FreeLLMAPI.exe'
+          $uninstaller = Join-Path $installDir 'Uninstall FreeLLMAPI.exe'
+          if (-not (Test-Path $appExe)) { throw "Installed application not found at resolved path $appExe" }
+          if (-not (Test-Path $uninstaller)) { throw "Uninstaller not found at resolved path $uninstaller" }
+
+          try {
+            $app = Start-Process -FilePath $appExe -PassThru
+            $deadline = (Get-Date).AddSeconds(90)
+            $healthy = $false
+            while ((Get-Date) -lt $deadline) {
+              if ($app.HasExited) { throw "FreeLLMAPI exited during startup (code $($app.ExitCode))." }
+              try {
+                $response = Invoke-RestMethod -Uri 'http://127.0.0.1:31415/api/ping' -TimeoutSec 3
+                if ($response.status -eq 'ok') { $healthy = $true; break }
+              } catch { Start-Sleep -Seconds 2; continue }
+              Start-Sleep -Seconds 2
+            }
+            if (-not $healthy) { throw 'FreeLLMAPI did not return status=ok from /api/ping within 90 seconds.' }
+            Write-Host 'PASS: installed app launched and local API health check returned status=ok.'
+          }
+          finally {
+            Get-Process -Name 'FreeLLMAPI' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 2
+            $remove = Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait -PassThru
+            if ($remove.ExitCode -ne 0) { throw "Uninstaller exited with code $($remove.ExitCode)." }
+          }
+          if (Test-Path $appExe) { throw 'Application executable remains after uninstall.' }
+          Write-Host 'PASS: silent uninstall completed and application executable was removed.'
 
       - name: Smoke-test packaged macOS backend
         if: runner.os == 'macOS'
