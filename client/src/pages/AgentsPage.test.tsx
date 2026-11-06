@@ -96,6 +96,8 @@ describe('AgentsPage Claude Code connection UI', () => {
       .find(element => element.textContent?.includes('Connect Claude Code'))
     expect(button).toBeDefined()
     expect((button as HTMLButtonElement).disabled).toBe(false)
+    // Manual setup remains available even when the native Windows button is shown.
+    expect(container.textContent).toContain('npx freellmapi setup-claude')
 
     await act(async () => {
       ;(button as HTMLButtonElement).dispatchEvent(new MouseEvent('click', { bubbles: true }))
