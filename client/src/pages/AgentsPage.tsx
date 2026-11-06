@@ -120,8 +120,8 @@ export default function AgentsPage() {
                 try {
                   const result = await window.__FREEAPI_CLAUDE__!.connect()
                   setConnectMessage(result.backupPath
-                    ? `Connected. Previous settings backed up to ${result.backupPath}`
-                    : `Connected. Settings saved to ${result.settingsPath}`)
+                    ? `Settings saved. Restart Claude Code to use FreeLLMAPI. Previous settings backed up to ${result.backupPath}`
+                    : `Settings saved to ${result.settingsPath}. Restart Claude Code to use FreeLLMAPI.`)
                 } catch (error) {
                   setConnectMessage(error instanceof Error ? error.message : String(error))
                 } finally {
