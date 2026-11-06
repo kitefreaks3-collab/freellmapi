@@ -23,7 +23,7 @@ export function selectTestableModels(models: readonly Model[], platform: string,
  *  own target instead of accidentally testing another endpoint's model.
  */
 export function selectBulkTestTargets(
-  keys: readonly Pick<ApiKey, 'id' | 'platform' | 'enabled' | 'label' | 'groupLabel'>[],
+  keys: readonly Pick<ApiKey, 'id' | 'platform' | 'enabled' | 'label' | 'groupLabel' | 'modelScope'>[],
   models: readonly Model[],
 ): Array<{ platform: string; model: Model | undefined }> {
   const enabledKeys = keys.filter(key => key.enabled)
@@ -34,11 +34,13 @@ export function selectBulkTestTargets(
   return [
     ...platforms.map(platform => ({
       platform,
-      model: sortModels(models.filter(model => model.platform === platform && model.enabled))[0],
+      model: sortModels(models.filter(model => model.platform === platform && model.enabled
+        && enabledKeys.some(key => key.platform === platform && (!key.modelScope || key.modelScope.includes(model.modelId)))))[0],
     })),
     ...enabledKeys.filter(key => key.platform === 'custom').map(key => ({
       platform: key.groupLabel || key.label || 'Custom',
-      model: sortModels(models.filter(model => model.platform === 'custom' && model.keyId === key.id && model.enabled))[0],
+      model: sortModels(models.filter(model => model.platform === 'custom' && model.keyId === key.id && model.enabled
+        && (!key.modelScope || key.modelScope.includes(model.modelId))))[0],
     })),
   ]
 }
