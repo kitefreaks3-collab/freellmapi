@@ -57,11 +57,6 @@ export default function KeysPage() {
     queryKey: ['keys'],
     queryFn: () => apiFetch('/api/keys'),
   })
-  const { data: models = [] } = useQuery<Model[]>({
-    queryKey: ['models'],
-    queryFn: () => apiFetch('/api/models'),
-    enabled: false,
-  })
   const { data: healthData } = useQuery<HealthData>({
     queryKey: ['health'],
     queryFn: () => apiFetch('/api/health'),
