@@ -7,6 +7,8 @@ const state = vi.hoisted(() => ({
     { platform: 'kilo', keyless: true },
     { platform: 'ovh', keyless: true },
     { platform: 'aihorde', keyless: true },
+    { platform: 'parallel', keyless: true },
+    { platform: 'keenable', keyless: true },
     { platform: 'halx', keyless: true },
     { platform: 'aisense', keyless: true },
     { platform: 'groq', keyless: false },
@@ -47,13 +49,13 @@ describe('initializeDesktopKeylessProviders', () => {
   });
 
   it('seeds supported anonymous inference providers without creating credentials', () => {
-    expect(initializeDesktopKeylessProviders()).toEqual(['kilo', 'ovh', 'aihorde']);
-    expect(state.inserts).toEqual(['kilo', 'ovh', 'aihorde']);
+    expect(initializeDesktopKeylessProviders()).toEqual(['kilo', 'ovh', 'aihorde', 'parallel', 'keenable']);
+    expect(state.inserts).toEqual(['kilo', 'ovh', 'aihorde', 'parallel', 'keenable']);
   });
 
   it('is idempotent across restarts and leaves existing rows untouched', () => {
     state.rows.add('kilo');
-    expect(initializeDesktopKeylessProviders()).toEqual(['ovh', 'aihorde']);
+    expect(initializeDesktopKeylessProviders()).toEqual(['ovh', 'aihorde', 'parallel', 'keenable']);
     expect(initializeDesktopKeylessProviders()).toEqual([]);
     expect(state.inserts).toEqual(['ovh', 'aihorde']);
   });
