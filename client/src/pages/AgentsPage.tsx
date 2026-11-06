@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { CheckCircle2, ExternalLink, Globe } from 'lucide-react'
+import { CheckCircle2, ExternalLink, Globe, Link2 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { useI18n } from '@/i18n'
 import { PageHeader } from '@/components/page-header'
@@ -66,6 +66,9 @@ function masked(value: string): string {
 export default function AgentsPage() {
   const { t } = useI18n()
   const [revealKey, setRevealKey] = useState(false)
+  const [connecting, setConnecting] = useState(false)
+  const [connectMessage, setConnectMessage] = useState('')
+  const canConnectClaude = window.__FREEAPI_DESKTOP__ === true && window.__FREEAPI_PLATFORM__ === 'win32' && !!window.__FREEAPI_CLAUDE__
   const { data: keyData } = useQuery<KeyResponse>({
     queryKey: ['api-key'],
     queryFn: () => apiFetch('/api/settings/api-key'),
@@ -100,6 +103,40 @@ export default function AgentsPage() {
       />
 
       <section className="mb-6 rounded-3xl border bg-card p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-medium">Connect Claude Code</h2>
+            <p className="mt-0.5 max-w-prose text-xs text-muted-foreground">
+              Configure Claude Code on this Windows PC automatically. Existing settings are backed up and preserved.
+            </p>
+          </div>
+          {canConnectClaude && (
+            <Button
+              size="sm"
+              disabled={connecting || !keyData?.apiKey}
+              onClick={async () => {
+                setConnecting(true)
+                setConnectMessage('')
+                try {
+                  const result = await window.__FREEAPI_CLAUDE__!.connect()
+                  setConnectMessage(result.backupPath
+                    ? `Connected. Previous settings backed up to ${result.backupPath}`
+                    : `Connected. Settings saved to ${result.settingsPath}`)
+                } catch (error) {
+                  setConnectMessage(error instanceof Error ? error.message : String(error))
+                } finally {
+                  setConnecting(false)
+                }
+              }}
+            >
+              <Link2 className="size-3.5" />
+              {connecting ? 'Connecting…' : 'Connect Claude Code'}
+            </Button>
+          )}
+        </div>
+        {connectMessage && <p role="status" className="mt-3 break-all text-xs text-muted-foreground">{connectMessage}</p>}
+        {!keyData?.apiKey && <p className="mt-2 text-xs text-muted-foreground">The local API key is still initializing.</p>}
+        <div className="mt-5 border-t pt-4">
         <h2 className="text-sm font-medium">{t('agents.quickstartTitle')}</h2>
         <p className="mt-0.5 max-w-prose text-xs text-muted-foreground">{t('agents.quickstart')}</p>
         <div className="mt-3 flex items-center gap-2 rounded-xl bg-muted/50 px-3 py-2">
@@ -115,6 +152,7 @@ export default function AgentsPage() {
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <span>{t('agents.currentKey')}</span>
           <code className="font-mono break-all">{shownKey}</code>
+        </div>
         </div>
       </section>
 
