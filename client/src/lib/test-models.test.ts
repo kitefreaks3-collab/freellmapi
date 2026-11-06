@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest'
 import type { ApiKey, Model } from '@freellmapi/shared/types'
 import { selectBulkTestTargets } from './test-models'
 
-const key = (overrides: Partial<Pick<ApiKey, 'id' | 'platform' | 'enabled' | 'label' | 'groupLabel'>>): Pick<ApiKey, 'id' | 'platform' | 'enabled' | 'label' | 'groupLabel'> => ({
+const key = (overrides: Partial<Pick<ApiKey, 'id' | 'platform' | 'enabled' | 'label' | 'groupLabel' | 'modelScope'>>): Pick<ApiKey, 'id' | 'platform' | 'enabled' | 'label' | 'groupLabel'> => ({
   id: 1,
   platform: 'groq',
   enabled: true,
   label: 'Key',
   groupLabel: null,
+  modelScope: null,
   ...overrides,
 })
 
