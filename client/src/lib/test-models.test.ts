@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ApiKey, Model } from '@freellmapi/shared/types'
 import { selectBulkTestTargets } from './test-models'
 
-const key = (overrides: Partial<Pick<ApiKey, 'id' | 'platform' | 'enabled' | 'label' | 'groupLabel' | 'modelScope'>>): Pick<ApiKey, 'id' | 'platform' | 'enabled' | 'label' | 'groupLabel'> => ({
+const key = (overrides: Partial<Pick<ApiKey, 'id' | 'platform' | 'enabled' | 'label' | 'groupLabel' | 'modelScope'>>): Pick<ApiKey, 'id' | 'platform' | 'enabled' | 'label' | 'groupLabel' | 'modelScope'> => ({
   id: 1,
   platform: 'groq',
   enabled: true,
@@ -45,6 +45,22 @@ describe('selectBulkTestTargets', () => {
 
     expect(targets).toHaveLength(1)
     expect(targets[0]).toMatchObject({ platform: 'groq', model: { id: 2 } })
+  })
+
+  it('chooses a model allowed by at least one enabled key scope', () => {
+    const targets = selectBulkTestTargets(
+      [
+        key({ id: 1, modelScope: ['model-2'] }),
+        key({ id: 2, modelScope: ['model-3'] }),
+      ],
+      [
+        model({ id: 1, modelId: 'model-1', intelligenceRank: 1 }),
+        model({ id: 2, modelId: 'model-2', intelligenceRank: 2 }),
+        model({ id: 3, modelId: 'model-3', intelligenceRank: 3 }),
+      ],
+    )
+
+    expect(targets[0]?.model?.modelId).toBe('model-2')
   })
 
   it('tests each enabled custom key against only its own model', () => {
