@@ -84,6 +84,11 @@ describe('selectBulkTestTargets', () => {
     ])
   })
 
+  it('returns no targets when there are no enabled provider keys', () => {
+    expect(selectBulkTestTargets([], [model()])).toEqual([])
+    expect(selectBulkTestTargets([key({ enabled: false })], [model()])).toEqual([])
+  })
+
   it('keeps configured providers visible when no enabled model exists', () => {
     const targets = selectBulkTestTargets(
       [key({ id: 1 })],
