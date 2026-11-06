@@ -346,11 +346,32 @@ jobs:
           $install = Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait -PassThru
           if ($install.ExitCode -ne 0) { throw "Installer exited with code $($install.ExitCode)." }
 
-          $installDir = Join-Path $env:LOCALAPPDATA 'Programs/FreeLLMAPI'
+          # Resolve the per-user install location from the uninstall registry entry
+          # instead of assuming electron-builder's default directory.
+          $uninstallEntries = @(
+            Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue |
+              Where-Object { $_.DisplayName -like 'FreeLLMAPI*' }
+          )
+          $installDir = $uninstallEntries |
+            Where-Object { $_.InstallLocation -and (Test-Path $_.InstallLocation) } |
+            Select-Object -First 1 -ExpandProperty InstallLocation
+
+          if (-not $installDir) {
+            $programsDir = Join-Path $env:LOCALAPPDATA 'Programs'
+            $appCandidate = Get-ChildItem $programsDir -Filter 'FreeLLMAPI.exe' -File -Recurse -ErrorAction SilentlyContinue |
+              Select-Object -First 1
+            if ($appCandidate) { $installDir = $appCandidate.DirectoryName }
+          }
+
+          if (-not $installDir) {
+            $uninstallEntries | Format-List DisplayName, InstallLocation, UninstallString | Out-String | Write-Host
+            throw 'FreeLLMAPI install directory could not be resolved from the per-user uninstall registry or Programs folder.'
+          }
+
           $appExe = Join-Path $installDir 'FreeLLMAPI.exe'
           $uninstaller = Join-Path $installDir 'Uninstall FreeLLMAPI.exe'
-          if (-not (Test-Path $appExe)) { throw "Installed application not found at $appExe" }
-          if (-not (Test-Path $uninstaller)) { throw "Uninstaller not found at $uninstaller" }
+          if (-not (Test-Path $appExe)) { throw "Installed application not found at resolved path $appExe" }
+          if (-not (Test-Path $uninstaller)) { throw "Uninstaller not found at resolved path $uninstaller" }
 
           try {
             $app = Start-Process -FilePath $appExe -PassThru
