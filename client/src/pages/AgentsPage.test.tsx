@@ -139,7 +139,8 @@ describe('AgentsPage Claude Code connection UI', () => {
     mount()
     await flush()
 
-    expect(container.textContent).not.toContain('Connect Claude Code')
+    expect([...container.querySelectorAll('button')].some(element => element.textContent?.includes('Connect Claude Code'))).toBe(false)
+    expect(container.textContent).toContain('Connect Claude Code')
     expect(container.textContent).toContain('npx freellmapi setup-claude')
     expect(connect).not.toHaveBeenCalled()
   })
