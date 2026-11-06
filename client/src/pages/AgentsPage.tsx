@@ -136,8 +136,7 @@ export default function AgentsPage() {
         </div>
         {connectMessage && <p role="status" className="mt-3 break-all text-xs text-muted-foreground">{connectMessage}</p>}
         {!keyData?.apiKey && <p className="mt-2 text-xs text-muted-foreground">The local API key is still initializing.</p>}
-        {!canConnectClaude && (
-          <div className="mt-5 border-t pt-4">
+        <div className="mt-5 border-t pt-4">
           <h2 className="text-sm font-medium">{t('agents.quickstartTitle')}</h2>
         <p className="mt-0.5 max-w-prose text-xs text-muted-foreground">{t('agents.quickstart')}</p>
         <div className="mt-3 flex items-center gap-2 rounded-xl bg-muted/50 px-3 py-2">
@@ -154,8 +153,7 @@ export default function AgentsPage() {
           <span>{t('agents.currentKey')}</span>
           <code className="font-mono break-all">{shownKey}</code>
         </div>
-          </div>
-        )}
+        </div>
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
