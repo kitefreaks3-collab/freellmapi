@@ -48,7 +48,7 @@ describe('initializeDesktopKeylessProviders', () => {
     state.inserts.length = 0;
   });
 
-  it('seeds supported anonymous inference providers without creating credentials', () => {
+  it('seeds registered anonymous providers without creating credentials', () => {
     expect(initializeDesktopKeylessProviders()).toEqual(['kilo', 'ovh', 'aihorde', 'parallel', 'keenable']);
     expect(state.inserts).toEqual(['kilo', 'ovh', 'aihorde', 'parallel', 'keenable']);
   });
@@ -57,7 +57,7 @@ describe('initializeDesktopKeylessProviders', () => {
     state.rows.add('kilo');
     expect(initializeDesktopKeylessProviders()).toEqual(['ovh', 'aihorde', 'parallel', 'keenable']);
     expect(initializeDesktopKeylessProviders()).toEqual([]);
-    expect(state.inserts).toEqual(['ovh', 'aihorde']);
+    expect(state.inserts).toEqual(['ovh', 'aihorde', 'parallel', 'keenable']);
   });
 
   it('does not enable decision-only or credential-required providers', () => {
