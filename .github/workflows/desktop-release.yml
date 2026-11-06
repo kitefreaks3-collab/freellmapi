@@ -45,9 +45,9 @@ permissions:
 jobs:
   build:
     name: Build (${{ matrix.os }})
-    # PR validation targets the supported Windows/Linux desktop builds. Keep macOS
-    # packaging for manual and tagged release runs, where those artifacts matter.
-    if: github.event_name != 'pull_request' || matrix.os == 'windows-2022' || matrix.os == 'ubuntu-24.04'
+    # PR validation targets the user's Windows desktop workflow only. Keep Linux
+    # and macOS packaging for manual and tagged release runs.
+    if: github.event_name != 'pull_request' || matrix.os == 'windows-2022'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
