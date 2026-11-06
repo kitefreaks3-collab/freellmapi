@@ -85,6 +85,9 @@ export default function KeysPage() {
       setBulkProgress({ done: 0, total: targets.length })
       const rows: BulkTestRow[] = []
       setBulkRows([])
+      if (targets.length === 0) {
+        setBulkRows([{ platform: 'Providers', model: '—', status: 'skipped', error: 'No enabled provider keys to test' }])
+      }
       for (const target of targets) {
         if (!target.model) {
           rows.push({ platform: target.platform, model: '—', status: 'skipped', error: 'No enabled chat model in catalog' })
