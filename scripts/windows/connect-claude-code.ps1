@@ -24,16 +24,34 @@ $settingsDir = Join-Path $env:USERPROFILE ".claude"
 $settingsPath = Join-Path $settingsDir "settings.json"
 New-Item -ItemType Directory -Force -Path $settingsDir | Out-Null
 
+function ConvertTo-Hashtable($InputObject) {
+  if ($null -eq $InputObject) { return $null }
+  if ($InputObject -is [System.Collections.IDictionary]) {
+    $result = @{}
+    foreach ($key in $InputObject.Keys) { $result[$key] = ConvertTo-Hashtable $InputObject[$key] }
+    return $result
+  }
+  if ($InputObject -is [System.Management.Automation.PSCustomObject]) {
+    $result = @{}
+    foreach ($property in $InputObject.PSObject.Properties) { $result[$property.Name] = ConvertTo-Hashtable $property.Value }
+    return $result
+  }
+  if ($InputObject -is [System.Array]) {
+    return ,@($InputObject | ForEach-Object { ConvertTo-Hashtable $_ })
+  }
+  return $InputObject
+}
+
 $settings = @{}
 if (Test-Path $settingsPath) {
   $raw = Get-Content -Raw -Path $settingsPath
   if (-not [string]::IsNullOrWhiteSpace($raw)) {
-    try { $settings = $raw | ConvertFrom-Json -AsHashtable }
+    try { $settings = ConvertTo-Hashtable ($raw | ConvertFrom-Json) }
     catch { throw "Existing Claude settings.json is invalid JSON. No changes were made. Fix it first: $settingsPath" }
   }
 }
 
-if (-not $settings.ContainsKey("env") -or $settings.env -isnot [System.Collections.IDictionary]) {
+if (-not $settings.ContainsKey("env") -or $settings["env"] -isnot [System.Collections.IDictionary]) {
   $settings["env"] = @{}
 }
 $settings["env"]["ANTHROPIC_BASE_URL"] = $BaseUrl
