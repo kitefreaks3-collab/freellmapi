@@ -21,6 +21,10 @@ export function initializeDesktopKeylessProviders(): string[] {
   const seed = db.transaction(() => {
     for (const provider of getAllProviders()) {
       if (!provider.keyless) continue;
+      // These two adapters expose a separate decision endpoint rather than
+      // general chat inference; keep them opt-in instead of adding them to the
+      // default chat-provider pool.
+      if (provider.platform === 'halx' || provider.platform === 'aisense') continue;
       if (exists.get(provider.platform)) continue;
 
       const secret = encrypt('no-key');
