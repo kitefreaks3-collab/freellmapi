@@ -282,6 +282,10 @@ describe('Model Provider Actions API', () => {
       });
       const modelDbId = createRes.body.id;
 
+      // Earlier tests may leave enabled Groq keys in the shared in-memory DB.
+      // Remove them so this assertion only exercises the two scoped keys below.
+      db.prepare("DELETE FROM api_keys WHERE platform = 'groq'").run();
+
       const excluded = encrypt('test-key-excluded-by-scope');
       db.prepare(`
         INSERT INTO api_keys (platform, label, encrypted_key, iv, auth_tag, enabled, status, model_scope_json)
