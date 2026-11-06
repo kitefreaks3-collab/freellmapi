@@ -54,6 +54,9 @@ beforeAll(() => {
 })
 
 beforeEach(() => {
+  // vite.config.ts normally replaces this compile-time constant; standalone
+  // Vitest runs do not load that config, so provide the same value globally.
+  vi.stubGlobal('__SERVER_PORT__', '31415')
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
