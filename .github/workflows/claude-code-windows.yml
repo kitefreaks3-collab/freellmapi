@@ -1,0 +1,68 @@
+name: Claude Code Windows compatibility
+
+on:
+  pull_request:
+    paths:
+      - 'desktop/src/claude-code.ts'
+      - 'desktop/src/__tests__/claude-code.test.ts'
+      - '.github/workflows/claude-code-windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  claude-code-windows:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - name: Install Claude Code using Anthropic's official Windows installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          irm https://claude.ai/install.ps1 | iex
+          $candidatePaths = @(
+            (Join-Path $env:USERPROFILE '.local\bin'),
+            (Join-Path $env:LOCALAPPDATA 'Programs\Claude')
+          )
+          foreach ($candidate in $candidatePaths) {
+            if (Test-Path $candidate) {
+              $env:PATH = "$candidate;$env:PATH"
+              Add-Content -Path $env:GITHUB_PATH -Value $candidate
+            }
+          }
+          $claude = Get-Command claude -ErrorAction SilentlyContinue
+          if (-not $claude) {
+            $claudeExe = Get-ChildItem $env:USERPROFILE -Filter 'claude.exe' -File -Recurse -ErrorAction SilentlyContinue |
+              Select-Object -First 1
+            if ($claudeExe) {
+              $env:PATH = "$($claudeExe.DirectoryName);$env:PATH"
+              Add-Content -Path $env:GITHUB_PATH -Value $claudeExe.DirectoryName
+              $claude = Get-Command claude -ErrorAction SilentlyContinue
+            }
+          }
+          if (-not $claude) { throw 'Claude Code CLI was not found after the official installer completed.' }
+          Write-Host "Claude executable: $($claude.Source)"
+          claude --version
+
+      - name: Verify CLI starts and reads a FreeLLMAPI-compatible configuration
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $configDir = Join-Path $env:RUNNER_TEMP 'claude-freeapi-config'
+          New-Item -ItemType Directory -Force -Path $configDir | Out-Null
+          $settings = @{
+            env = @{
+              ANTHROPIC_BASE_URL = 'http://127.0.0.1:31415'
+              ANTHROPIC_AUTH_TOKEN = 'ci-configuration-smoke-test'
+            }
+          } | ConvertTo-Json -Depth 5
+          Set-Content -Path (Join-Path $configDir 'settings.json') -Value $settings -Encoding utf8
+          $env:CLAUDE_CONFIG_DIR = $configDir
+          $env:ANTHROPIC_BASE_URL = 'http://127.0.0.1:31415'
+          $env:ANTHROPIC_AUTH_TOKEN = 'ci-configuration-smoke-test'
+          $doctor = & claude doctor 2>&1
+          $doctorExit = $LASTEXITCODE
+          $doctor | ForEach-Object { Write-Host $_ }
+          if ($doctorExit -ne 0) { throw "claude doctor failed with exit code $doctorExit." }
+          Write-Host 'PASS: Claude Code CLI installed, starts, and completes diagnostics with FreeLLMAPI-compatible endpoint/auth configuration.'
