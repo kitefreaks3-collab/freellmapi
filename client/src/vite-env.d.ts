@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
 
-declare const __SERVER_PORT__: string
-
 declare global {
+  const __SERVER_PORT__: string
+
   interface Window {
     __FREEAPI_DESKTOP__?: boolean
     __FREEAPI_PLATFORM__?: string
