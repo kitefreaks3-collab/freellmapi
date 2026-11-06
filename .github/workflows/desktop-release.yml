@@ -34,6 +34,9 @@ on:
       - 'desktop/**'
       - '.github/workflows/desktop-release.yml'
       - 'client/src/pages/AgentsPage.tsx'
+      - 'client/src/pages/KeysPage.tsx'
+      - 'client/src/lib/test-models.ts'
+      - 'client/src/lib/test-models.test.ts'
       - 'client/src/vite-env.d.ts'
 
 permissions:
