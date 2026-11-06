@@ -273,6 +273,45 @@ describe('Model Provider Actions API', () => {
       );
     });
 
+    it('selects an enabled key whose model scope includes the tested model', async () => {
+      const db = getDb();
+      const modelId = `scoped-test-${Date.now()}`;
+      const createRes = await post(app, '/api/models', {
+        platform: 'groq',
+        modelId,
+      });
+      const modelDbId = createRes.body.id;
+
+      const excluded = encrypt('test-key-excluded-by-scope');
+      db.prepare(`
+        INSERT INTO api_keys (platform, label, encrypted_key, iv, auth_tag, enabled, status, model_scope_json)
+        VALUES ('groq', 'Excluded scope', ?, ?, ?, 1, 'healthy', ?)
+      `).run(excluded.encrypted, excluded.iv, excluded.authTag, JSON.stringify(['some-other-model']));
+
+      const allowed = encrypt('test-key-allowed-by-scope');
+      db.prepare(`
+        INSERT INTO api_keys (platform, label, encrypted_key, iv, auth_tag, enabled, status, model_scope_json)
+        VALUES ('groq', 'Allowed scope', ?, ?, ?, 1, 'healthy', ?)
+      `).run(allowed.encrypted, allowed.iv, allowed.authTag, JSON.stringify([modelId]));
+
+      const groqProvider = getProvider('groq');
+      const chatSpy = vi.spyOn(groqProvider!, 'chatCompletion').mockResolvedValueOnce({
+        id: 'scoped-completion-id',
+        choices: [{ message: { role: 'assistant', content: 'pong' }, finish_reason: 'stop' }],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      } as any);
+
+      const testRes = await post(app, `/api/models/${modelDbId}/test`);
+      expect(testRes.status).toBe(200);
+      expect(testRes.body.success).toBe(true);
+      expect(chatSpy).toHaveBeenCalledWith(
+        'test-key-allowed-by-scope',
+        [{ role: 'user', content: 'ping' }],
+        modelId,
+        { max_tokens: 4, timeoutMs: 15000 },
+      );
+    });
+
     it('enforces 5-second server throttle and returns 429', async () => {
       const db = getDb();
       const modelId = `throttle-model-${Date.now()}`;
